@@ -1,0 +1,11 @@
+# Twisted plugin name. The only mandatory values from this file
+TWISTED_PLUGIN=web
+
+# Optional arguments for plugin
+ TWISTED_PLUGIN_ARGS="--port=8082"
+
+# Optional arguments for twistd (use cerefully)
+TWISTED_ARGS=""
+
+# service will be stated as 
+# /usr/bin/twisted $TWISTED_ARGS $TWISTED_PLUGIN $TWISTED_PLUGIN_ARGS

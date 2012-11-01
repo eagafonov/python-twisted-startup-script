@@ -1,26 +1,41 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          #PACKAGE#
+# Provides:          python-twisted-startup-script
 # Required-Start:    $network $local_fs
 # Required-Stop:
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: <Enter a short description of the software>
-# Description:       <Enter a long description of the software>
-#                    <...>
-#                    <...>
+# Short-Description: twisted plugin sturtup script
+# Description:       Helper scrtipt to launch twisted plugins as services
 ### END INIT INFO
 
-# Author: #USERNAME# <#EMAIL#>
+# Author: Eugene Agafonov <e.a.agafonov@gmail.com>
+
+BASENAME=`basename $0`
+
+echo $BASENAME
+
+if [ ! -r "/etc/python-twisted.d/$BASENAME" ]; then
+    echo "E: Can't locate configuration /etc/python-twisted.d/$BASENAME" >&2
+    exit 2
+fi
+
+. /etc/python-twisted.d/$BASENAME
+
+if [ -z  "$TWISTED_PLUGIN" ]; then
+    echo "E: Configuration /etc/python-twisted.d/$BASENAME has no TWISTED_PLUGIN specified" >&2
+    exit 3
+fi
 
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC=#PACKAGE#             # Introduce a short description here
-NAME=#PACKAGE#             # Introduce the short server's name here
-DAEMON=/usr/sbin/#PACKAGE# # Introduce the server's location here
+DESC="$BASENAME (Twisted $TWISTED_PLUGIN)"             # Introduce a short description here
+NAME=$BASENAME             # Introduce the short server's name here
+DAEMON=/usr/bin/twistd     # Introduce the server's location here
 DAEMON_ARGS=""             # Arguments to run the daemon with
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
+LOGFILE=/var/log/twisted/$NAME.log
 
 # Exit if the package is not installed
 [ -x $DAEMON ] || exit 0
@@ -44,10 +59,14 @@ do_start()
 	#   0 if daemon has been started
 	#   1 if daemon was already running
 	#   2 if daemon could not be started
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON --test > /dev/null \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE  --exec $DAEMON --test > /dev/null \
 		|| return 1
-	start-stop-daemon --start --quiet --pidfile $PIDFILE --exec $DAEMON -- \
-		$DAEMON_ARGS \
+	start-stop-daemon --start --quiet --pidfile $PIDFILE  --exec $DAEMON -- \
+                --pidfile=$PIDFILE \
+                --logfile=$LOGFILE \
+                $TWISTED_ARGS \
+                $TWISTED_PLUGIN \
+		$TWISTED_PLUGIN_ARGS \
 		|| return 2
 	# Add code here, if necessary, that waits for the process to be ready
 	# to handle requests from services started subsequently which depend
@@ -64,7 +83,7 @@ do_stop()
 	#   1 if daemon was already stopped
 	#   2 if daemon could not be stopped
 	#   other if a failure occurred
-	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE --name $NAME
+	start-stop-daemon --stop --quiet --retry=TERM/30/KILL/5 --pidfile $PIDFILE
 	RETVAL="$?"
 	[ "$RETVAL" = 2 ] && return 2
 	# Wait for children to finish too if this is a daemon that forks
@@ -89,7 +108,7 @@ do_reload() {
 	# restarting (for example, when it is sent a SIGHUP),
 	# then implement that here.
 	#
-	start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE --name $NAME
+	start-stop-daemon --stop --signal 1 --quiet --pidfile $PIDFILE
 	return 0
 }
 
